@@ -1,10 +1,13 @@
 //Router를 모듈화해서 exports함.
 module.exports = function(app, fs){
     app.get('/', function(req, res){
+        var sess = req.session;
         //render함수의 두번째 인자로 json데이터를 전달함으로써 페이지에서 데이터를 사용가능하게 된다.
         res.render('index', {
             title : "MY HOMEPAGE",
-            length : 5
+            length : 5,
+            name : sess.name,
+            username : sess.username
         });
     });
 
@@ -113,6 +116,59 @@ module.exports = function(app, fs){
         })
 
     })
+
+    //로그인 api
+    app.get('/login/:username/:password', function(req, res){
+        //세션 초기 설정
+        var sess;
+        sess = req.session;
+        //세션 변수 선언
+
+        fs.readFile(__dirname + "/../data/user.json", "utf8", function(err, data){
+          var users = JSON.parse(data);
+          var username = req.params.username;
+          var password = req.params.password;
+          var result = {};
+
+          if(!users[username]){
+              //username not found
+              result["success"] = 0;
+              result["error"] = "not found";
+              res.json(result);
+              return;
+          }
+
+          if(users[username]["password"] == password){
+              result["success"] = 1;
+              sess.username = username;
+              sess.name = users[username]["name"];
+              res.json(result);
+          }else{
+              result["success"] = 0;
+              result["error"] = "incorrect";
+              res.json(result);
+          }
+
+        })
+    })
+
+
+    //로그아웃 api
+    app.get('/logout', function(req, res){
+        sess = req.session;
+        if(sess.username){
+            req.session.destroy(function(err){
+                if(err){
+                    console.log(err);
+                }else{
+                    res.redirect('/');
+                }
+            })
+        }else{
+            res.redirect('/');
+        }
+    })
+
 
 
 }
